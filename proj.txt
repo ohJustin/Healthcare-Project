@@ -1,0 +1,180 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 52,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import os # File system communication/interaction\n",
+    "import subprocess # Shell commands from within Python Script"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Paths\n",
+    "exp_folder = \"D:\\\\CShealth\\\\Experiments\"\n",
+    "out_folder = \"D:\\\\Output\"\n",
+    "genomeF = \"genome.fa\" \n",
+    "seq_length = 120\n",
+    "\n",
+    "# In case output folder is not on one's machine.\n",
+    "if not os.path.exists(out_folder):\n",
+    "    os.makedirs(out_folder)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 54,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Convert ALL* bed files to nucelotide sequence file(s)\n",
+    "def convert_bedFile(bedFile):\n",
+    "    out_file = os.path.join(out_folder, os.path.basename(bedFile).replace(\".bed\",\"_atgc.txt\"))\n",
+    "    commands = f\"bedtools getfasta -fi {genome_fasta} -bed {bedFile} _fo {out_file}\"\n",
+    "    \n",
+    "    try:\n",
+    "        subprocess.run(command, shell = True, check = True)\n",
+    "        print(f\"{bedFile} -> {out_file}\")\n",
+    "    except subprocess.CalledProcessError as exc:\n",
+    "        print(\"Issue converting - {bedfile}: {exc}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 55,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    " # Crop seq(s) to length 'seq_length'\n",
+    "def crop_seq(inputFile, outFile, seq_length):\n",
+    "    with open(inputFile, 'r') as inFile, open (outFile, 'w') as outFile:\n",
+    "        for currLine in inFile:\n",
+    "            if currLine.startswith('>'):\n",
+    "                outFile.write(currLine)\n",
+    "            else:\n",
+    "                sequence = currLine.strip()\n",
+    "                if len(sequence) >= seq_length:\n",
+    "                    outFile.write(sequence[:seq_length] + '\\n')\n",
+    "    print(f\"Cropped data placed in -> {outFile}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 56,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Create negative bed file\n",
+    "\n",
+    "def createNegativebedfile(bedFile, negative_output):\n",
+    "    with open(bedFile, 'r') as inFile, open(negative_output, 'w') as outFile:\n",
+    "        prevEnd = None\n",
+    "        prevChrom = None\n",
+    "    \n",
+    "    for currLine in inFile:\n",
+    "        start, chrom, end = line.strip().split()[:3]\n",
+    "        start, end = int(start), int(end)\n",
+    "\n",
+    "        if prevEnd is not None and prevChrom == chrom:\n",
+    "            if start > prevEnd:\n",
+    "                outFile.write(f\"{chrom}\\t{prevEnd+1}\\t{start-1}\\n\")\n",
+    "            prevChrome, prevEnd = chrom, end\n",
+    "        printf(\"Negative data placed in -> {negative_output}\")\n",
+    "\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 57,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Convert negative bed file -> nucleotide sequence\n",
+    "\n",
+    "def convertNegativenucleotide(negativeBedfile):\n",
+    "    negativeOutfile = os.path.join(out_folder, os.path.basename(negativeBedfile).replace(\".bed\", \"_negative_atgc.txt\"))\n",
+    "    command = f\"bedtools getfasta -fi {genomeF} -bed {negativeBedfile} -fo {negativeOutfile}\"\n",
+    "\n",
+    "    try:\n",
+    "        subprocess.run(command,shell=True,check=True)\n",
+    "        print(f\"Converted {negativeBedfile} -> {negativeOutfile}\")\n",
+    "    except subprocess.CalledProcessorError as exc:\n",
+    "        print(f\" Error converting -> {negativeBedfile} ->: {exc}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 58,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "FileNotFoundError",
+     "evalue": "[Errno 2] No such file or directory: 'D:\\\\CShealth\\\\Experiments'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mFileNotFoundError\u001b[0m                         Traceback (most recent call last)",
+      "Cell \u001b[0;32mIn[58], line 3\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[38;5;66;03m# Utilize functions to iterate over .bed files in experiment folder and convert them\u001b[39;00m\n\u001b[0;32m----> 3\u001b[0m \u001b[38;5;28;01mfor\u001b[39;00m file \u001b[38;5;129;01min\u001b[39;00m \u001b[43mos\u001b[49m\u001b[38;5;241;43m.\u001b[39;49m\u001b[43mlistdir\u001b[49m\u001b[43m(\u001b[49m\u001b[43mexp_folder\u001b[49m\u001b[43m)\u001b[49m:\n\u001b[1;32m      4\u001b[0m     \u001b[38;5;28;01mif\u001b[39;00m file\u001b[38;5;241m.\u001b[39mendswith(\u001b[38;5;124m\"\u001b[39m\u001b[38;5;124m.bed\u001b[39m\u001b[38;5;124m\"\u001b[39m):\n\u001b[1;32m      5\u001b[0m         bed_file_path \u001b[38;5;241m=\u001b[39m os\u001b[38;5;241m.\u001b[39mpath\u001b[38;5;241m.\u001b[39mjoin(exp_folder, file)\n",
+      "\u001b[0;31mFileNotFoundError\u001b[0m: [Errno 2] No such file or directory: 'D:\\\\CShealth\\\\Experiments'"
+     ]
+    }
+   ],
+   "source": [
+    "\n",
+    "    # Utilize functions to iterate over .bed files in experiment folder and convert them\n",
+    "\n",
+    "for file in os.listdir(exp_folder):\n",
+    "        if file.endswith(\".bed\"):\n",
+    "            bed_file_path = os.path.join(exp_folder, file)\n",
+    "\n",
+    "            # 1&2 ... Convert narrowPeak to nucleotide seq file\n",
+    "            convert_bedFile(bed_file_path)\n",
+    "\n",
+    "            # 3 ... Crop seq to custom uniform length\n",
+    "            atgcFile = os.path.join(out_folder, os.path.basename(bed_file_path).replace(\".bed\", \"_atgc.txt\"))\n",
+    "            croppedOutputfile = os.path.join(out_folder, os.path.basename(bed_file_path).replace(\".bed\", \"_positive.txt\"))\n",
+    "            cropSeq(atgcFile, croppedOutputfile, seq_length)\n",
+    "\n",
+    "            # 5&6 ... Create negative bedFile\n",
+    "            negativeBedoutput = os.path.join(out_folder, os.path.basename(bed_file_path).replace(\".bed\", \"_negative.bed\"))\n",
+    "            createNegativebedfile(bed_file_path, negativeBedoutput)\n",
+    "\n",
+    "            # Convert neg bed file -> nucleotide sequence\n",
+    "            convertNegativenucleotide(negativeBedoutput)\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.13.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
